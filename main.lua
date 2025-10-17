@@ -59,7 +59,7 @@ Window:AddMinimizeButton({
     Button = { 
         Image = "rbxassetid://100423565495876",  -- tu icono
         BackgroundTransparency = 0,
-        Size = UDim2.new(0, 80, 0, 80)  -- tamaño más grande: ancho 80, alto 80
+        Size = UDim2.new(0, 50, 0, 50)  -- tamaño más grande: ancho 80, alto 80
     },
     Corner = { 
         CornerRadius = UDim.new(0, 15)  -- esquinas redondeadas (15px)
