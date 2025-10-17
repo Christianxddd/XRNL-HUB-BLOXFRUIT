@@ -1,49 +1,75 @@
--- XRNL HUB - Diagnostic + Robust creator (usa únicamente RedzLib)
--- Ejecuta esto y pega aquí el Output si ves FAILs.
+-- =============================================
+-- XRNL HUB - Diagnostic + Robust Creator
+-- Usa únicamente RedzLib
+-- Ejecuta esto y revisa el Output si hay FAILs
+-- =============================================
 
-local function safePrint(...) print("[XRNL-DBG]", ...) end
+-- Helper para debug
+local function safePrint(...) 
+    print("[XRNL-DBG]", ...) 
+end
 
--- 1) Try to load redzlib
+-- =========================
+-- 1) Cargar librería RedzLib
+-- =========================
 local ok, redzlib = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 end)
+
 if not ok then
     safePrint("ERROR: loadstring failed. ok:", ok, "error:", tostring(redzlib))
     return
 end
+
 if type(redzlib) ~= "table" then
-    safePrint("ERROR: redzlib loaded but is not a table. type:", type(redzlib))
+    safePrint("ERROR: redzlib cargada, pero no es una tabla. type:", type(redzlib))
     return
 end
-safePrint("OK: redzlib loaded. type:", type(redzlib))
 
--- 2) Print top-level keys in redzlib (helps detectar API)
+safePrint("OK: redzlib cargada. type:", type(redzlib))
 safePrint("redzlib keys:")
 for k,v in pairs(redzlib) do
     safePrint("  -", k, "(", type(v), ")")
 end
 
--- 3) Try to create Window safely and inspect Window methods
+-- =========================
+-- 2) Crear ventana principal
+-- =========================
 local win_ok, Window_or_err = pcall(function()
     return redzlib:MakeWindow({
-        Title = "XRNL DIAG",
-        SubTitle = "diagnostic window",
+        Title = "XRNL HUB",
+        SubTitle = "By Robles Sebastian",
         SaveFolder = "XRNL_diag"
     })
 end)
+
 if not win_ok or not Window_or_err then
     safePrint("FAIL: MakeWindow failed. success:", win_ok, "err:", tostring(Window_or_err))
     return
 end
+
 local Window = Window_or_err
 safePrint("OK: Window created. type:", type(Window))
 
-safePrint("Window keys/methods:")
-for k,v in pairs(Window) do
-    safePrint("  -", k, "(", type(v), ")")
-end
+-- =========================
+-- 3) Agregar icono cuadrado
+-- =========================
+-- Icono flotante grande, con bordes redondeados pero forma cuadrada
+Window:AddMinimizeButton({
+    Button = { 
+        Image = "rbxassetid://100423565495876",  -- tu icono
+        BackgroundTransparency = 0,
+        Size = UDim2.new(0, 80, 0, 80)  -- tamaño más grande: ancho 80, alto 80
+    },
+    Corner = { 
+        CornerRadius = UDim.new(0, 15)  -- esquinas redondeadas (15px)
+    }
+})
 
--- helper to try calls and log result
+
+-- =========================
+-- 4) Función helper para pcall
+-- =========================
 local function tryCall(desc, fn)
     local s, r = pcall(fn)
     if s then
@@ -55,74 +81,149 @@ local function tryCall(desc, fn)
     end
 end
 
--- 4) Create a test tab to ensure MakeTab works, and record the returned object keys
+-- =========================
+-- 5) Crear pestañas de prueba
+-- =========================
 local tab_ok, Tab1 = tryCall("Window:MakeTab({'Test','cherry'})", function()
     return Window:MakeTab({"Test","cherry"})
 end)
+
 if not tab_ok then
     safePrint("Aborting: MakeTab failed, cannot continue creating tabs.")
     return
 end
 
-safePrint("Tab1 created. Listing Tab1 methods/keys:")
+safePrint("Tab1 created. Listing methods/keys:")
 for k,v in pairs(Tab1) do safePrint("  -", k, "(", type(v), ")") end
 
--- 5) Test a set of common widget methods (AddSection, AddParagraph, AddButton, AddToggle, AddSlider, AddDropdown, AddTextBox, AddDiscordInvite, AddMinimizeButton, Dialog)
-local widget_tests = {
-    {"AddSection", function() return Tab1:AddSection({"Debug Section"}) end},
-    {"AddParagraph", function() return Tab1:AddParagraph({"P","Line1\nLine2"}) end},
-    {"AddButton", function() return Tab1:AddButton({"TestButton", function() safePrint('Button pressed') end}) end},
-    {"AddToggle", function() return Tab1:AddToggle({Name="DbgToggle", Default=false, Callback=function(v) safePrint('Toggle',v) end}) end},
-    {"AddSlider", function() return Tab1:AddSlider({Name="DbgSlider", Min=1, Max=10, Increase=1, Default=5, Callback=function(v) safePrint('Slider',v) end}) end},
-    {"AddDropdown", function() return Tab1:AddDropdown({Name="DbgDropdown", Options={'one','two'}, Default='one', Callback=function(v) safePrint('Dropdown',v) end}) end},
-    {"AddTextBox", function() return Tab1:AddTextBox({Name='DbgText', Description='desc', PlaceholderText='txt', Callback=function(v) safePrint('Text',v) end}) end},
-    {"AddDiscordInvite", function() return Tab1:AddDiscordInvite({Name='Dbg', Description='Join', Logo='rbxassetid://18751483361', Invite='https://discord.gg/test'}) end},
-    {"Window:AddMinimizeButton", function() return Window:AddMinimizeButton({Button={Image='rbxassetid://100423565495876', BackgroundTransparency=0}, Corner={CornerRadius=UDim.new(35,1)}}) end},
-    {"Window:Dialog", function() return Window:Dialog({Title='Dlg', Text='Hello', Options={{'OK', function() safePrint('Dlg OK') end}}}) end}
-}
+-- =========================
+-- 6) Widgets de prueba ordenados
+-- =========================
 
-for _, t in ipairs(widget_tests) do
-    local name, fn = t[1], t[2]
-    tryCall(name, fn)
-end
+-- Sección
+local Section1 = Tab1:AddSection({"Debug Section"})
 
--- 6) If all worked, attempt to create the full set of tabs you requested (wrapped in pcall per tab)
-local requested_tabs = {
-    {"Discord", {"Discord", "discord"}},
-    {"Farm", {"Farm", "farm"}},
-    {"Setting", {"Setting", "setting"}},
-    {"QuestItem", {"Quest / Item", "quest"}},
-    {"RaceMirage", {"Race / Mirage", "race"}},
-    {"Event", {"Event", "event"}},
-    {"Player", {"Player", "player"}},
-    {"Visual", {"Visual", "visual"}},
-    {"Raid", {"Raid", "raid"}},
-    {"Teleport", {"Teleport", "tp"}},
-    {"Shop", {"Shop", "shop"}},
-    {"DevilFruit", {"Devil Fruit", "fruit"}},
-    {"Misc", {"Miscellaneous", "misc"}}
+-- Párrafo
+local Paragraph1 = Tab1:AddParagraph({
+    "Paragraph",
+    "Linea 1\nLinea 2"
+})
+
+-- Button
+Tab1:AddButton({
+    "TestButton",
+    function()
+        safePrint("Button pressed")
+    end
+})
+
+-- Toggle con variable para callback separado
+local Toggle1 = Tab1:AddToggle({
+    Name = "DbgToggle",
+    Description = "Toggle de prueba",
+    Default = false
+})
+Toggle1:Callback(function(Value)
+    safePrint("Toggle value:", Value)
+end)
+
+-- Slider
+Tab1:AddSlider({
+    Name = "DbgSlider",
+    Min = 1,
+    Max = 10,
+    Increase = 1,
+    Default = 5,
+    Callback = function(Value)
+        safePrint("Slider value:", Value)
+    end
+})
+
+-- Dropdown
+local Dropdown1 = Tab1:AddDropdown({
+    Name = "DbgDropdown",
+    Options = {"one","two"},
+    Default = "one",
+    Callback = function(Value)
+        safePrint("Dropdown selected:", Value)
+    end
+})
+
+-- TextBox
+Tab1:AddTextBox({
+    Name = "DbgText",
+    Description = "Caja de texto de prueba",
+    PlaceholderText = "Escribe algo...",
+    Callback = function(Value)
+        safePrint("TextBox value:", Value)
+    end
+})
+
+-- Discord Invite
+Tab1:AddDiscordInvite({
+    Name = "DbgDiscord",
+    Description = "Unirse al servidor",
+    Logo = "rbxassetid://18751483361",
+    Invite = "https://discord.gg/test"
+})
+
+-- Dialog
+Window:Dialog({
+    Title = "Dlg",
+    Text = "Esto es un dialogo",
+    Options = {
+        {"OK", function() safePrint("Dialog OK") end},
+        {"Cancel", function() safePrint("Dialog Cancel") end}
+    }
+})
+
+-- =========================
+-- 7) Crear todas las pestañas finales
+-- =========================
+local tabsToCreate = {
+    {"Discord", {"Discord","discord"}},
+    {"Farm", {"Farm","farm"}},
+    {"Setting", {"Setting","setting"}},
+    {"QuestItem", {"Quest / Item","quest"}},
+    {"RaceMirage", {"Race / Mirage","race"}},
+    {"Event", {"Event","event"}},
+    {"Player", {"Player","player"}},
+    {"Visual", {"Visual","visual"}},
+    {"Raid", {"Raid","raid"}},
+    {"Teleport", {"Teleport","tp"}},
+    {"Shop", {"Shop","shop"}},
+    {"DevilFruit", {"Devil Fruit","fruit"}},
+    {"Misc", {"Miscellaneous","misc"}}
 }
 
 local createdTabs = {}
-for _, info in ipairs(requested_tabs) do
+for _, info in ipairs(tabsToCreate) do
     local key, args = info[1], info[2]
-    local desc = "Window:MakeTab("..tostring(args[1])..")"
-    local okc, tab = tryCall(desc, function() return Window:MakeTab(args) end)
+    local okc, tab = tryCall("Window:MakeTab("..args[1]..")", function()
+        return Window:MakeTab(args)
+    end)
     if okc and tab then
         createdTabs[key] = tab
         safePrint("CREATED TAB:", key)
-    else
-        safePrint("FAILED TAB:", key, "reason:", tostring(tab))
     end
 end
 
--- 7) For each created tab, attempt to add a section + a button (safe)
+-- =========================
+-- 8) Agregar sección + botón de prueba en cada tab
+-- =========================
 for name, tab in pairs(createdTabs) do
-    tryCall("Tab "..name..":AddSection", function() return tab:AddSection({{name}}) end)
-    tryCall("Tab "..name..":AddButton", function() return tab:AddButton({"Test "..name, function() safePrint("Pressed "..name) end}) end)
+    local Sec = tab:AddSection({{name}})
+    tab:AddButton({
+        "Test "..name,
+        function()
+            safePrint("Pressed "..name)
+        end
+    })
 end
 
--- 8) Final status summary
+-- =========================
+-- 9) Resumen final
+-- =========================
 safePrint("DIAG COMPLETE. Summary:")
 safePrint(" - redzlib loaded:", ok)
 safePrint(" - Window created:", win_ok and tostring(Window) or "no")
@@ -130,4 +231,4 @@ safePrint(" - Created tabs count:", (function() local c=0; for _ in pairs(create
 
 safePrint("INSTRUCCIONES:")
 safePrint("  - Si ves FAIL lines, copia EXACTAMENTE esas líneas y pégalas aquí.")
-safePrint("  - Si todo OK, dime y te genero YA el script completo funcional con todas las funciones en esas pestañas.")
+safePrint("  - Si todo OK, este código está listo para crear tu HUB funcional con todas las pestañas y widgets ordenados.")
